@@ -32,7 +32,7 @@ class Matrix {
 public:
     Matrix();
     Matrix(T* buf, size_t rows, size_t cols, ElOrder order = RowMaj);
-    Matrix(size_t rows, size_t cols, bool is_rand = false, ElOrder order = RowMaj);
+    Matrix(size_t rows, size_t cols, ElOrder order = RowMaj, bool is_rand = false);
     Matrix(size_t rows, size_t cols, T elem, ElOrder order = RowMaj);
     Matrix(const Matrix<T> &matr);
     //Matrix(Matrix&& m);
@@ -47,7 +47,7 @@ public:
     inline ElOrder order() const ;
     inline size_t size() const;
 
-
+    float* get_col(size_t ind);
 
     Matrix<T> operator+(const Matrix &matr) throw(string);
     Matrix<T> operator-(const Matrix &matr) throw(string);
@@ -62,7 +62,7 @@ public:
 
     void write(ostream& o) const;
     void print(OutType o_type = O_FXD,
-               uint precision = 8,
+               size_t precision = 8,
                ostream &stream = cout) const throw(string);
 
     double norm();
@@ -108,7 +108,7 @@ public:
 
     void write(ostream& o) const;
     void print(OutType o_type = O_FXD,
-               uint precision = 8,
+               size_t precision = 8,
                ostream &stream = cout) const throw(string);
 
     double norm();

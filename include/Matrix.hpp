@@ -51,7 +51,7 @@ Matrix<T>::Matrix(T* buf, size_t rows, size_t cols, ElOrder order):
 }
 
 template<class T>
-Matrix<T>::Matrix(size_t rows, size_t cols, bool is_rand, ElOrder order):
+Matrix<T>::Matrix(size_t rows, size_t cols, ElOrder order, bool is_rand):
         rows(rows),
         cols(cols),
         ord(order)
@@ -140,6 +140,12 @@ inline size_t Matrix<T>::size() const{
 }
 
 template<class T>
+float* Matrix<T>::get_col(size_t ind){
+    if (ord != ColMaj) throw string("getcol in rowmaj mat");
+    return arr + ind*rows;
+}
+
+template<class T>
 Matrix<T> Matrix<T>::operator+(const Matrix &matr) throw(string) {
     if (rows != matr.rows || cols != matr.cols) throw string("Matrices of different sizes in \"+\"");
 
@@ -161,7 +167,7 @@ Matrix<T> Matrix<T>::operator-(const Matrix &matr) throw(string) {
     if (rows != matr.rows || cols != matr.cols) throw string("Matrices of different sizes in \"-\"");
 
     Matrix<T> tmp = *this;
-    int i, j;
+    size_t i, j;
 
     for (i = 0; i < rows; i++)
         for (j = 0; j < cols; j++)
@@ -203,7 +209,7 @@ T &Matrix<T>::operator()(size_t i, size_t j) const throw(string) {
 
 template<class Y>
 const istream& operator>>(const istream &strm, Matrix<Y> &matr) {
-    int i, j;
+    size_t i, j;
 
     for (i = 0; i < matr.rows; i++)
         for (j = 0; j < matr.cols; j++)
@@ -216,13 +222,11 @@ const istream& operator>>(const istream &strm, Matrix<Y> &matr) {
 
 template<class T>
 Matrix<T> &Matrix<T>::operator=(const Matrix &m) {
-    size_t i, j;
-
     delete []arr;
 
     rows = m.n_rows();
     cols = m.n_cols();
-    ord = m.ord();
+    ord = m.ord;
     arr = new T[m.n_rows() * m.n_cols()];
 
     memcpy(arr, m.data(), m.n_rows()*m.n_cols()*sizeof(T));
@@ -258,9 +262,9 @@ void Matrix<T>::write(ostream& o) const {
 
 template<typename T>
 void Matrix<T>::print(OutType o_type,
-                      uint precision,
+                      size_t precision,
                       ostream &stream) const throw(string) {
-    uint width;
+    size_t width;
 
     switch (o_type) {
         case O_SCI:
@@ -402,7 +406,7 @@ Matrix<std::complex<T> > Matrix<std::complex<T> >::operator+(const Matrix &matr)
     if (rows != matr.rows || cols != matr.cols) throw string("Matrices of different sizes in \"+\"");
 
     Matrix<T> tmp = *this;
-    int i, j;
+    size_t i, j;
 
     for (i = 0; i < rows; i++)
         for (j = 0; j < cols; j++)
@@ -416,7 +420,7 @@ Matrix<std::complex<T> > Matrix<std::complex<T> >::operator-(const Matrix &matr)
     if (rows != matr.rows || cols != matr.cols) throw string("Matrices of different sizes in \"-\"");
 
     Matrix<T> tmp = *this;
-    int i, j;
+    size_t i, j;
 
     for (i = 0; i < rows; i++)
         for (j = 0; j < cols; j++)
@@ -447,7 +451,7 @@ std::complex<T> &Matrix<std::complex<T> >::operator()(size_t i, size_t j) const 
 
 template<class Y>
 const istream& operator>>(const istream &strm, Matrix<std::complex<Y> > &matr) {
-    int i, j;
+    size_t i, j;
 
     for (i = 0; i < matr.rows; i++)
         for (j = 0; j < matr.cols; j++)
@@ -484,9 +488,10 @@ void Matrix<std::complex<T> >::write(ostream& o) const {
 
 template<typename T>
 void Matrix<std::complex<T> >::print(OutType o_type,
-                      uint precision,
-                      ostream &stream) const throw(string) {
-    uint width;
+                                     size_t precision,
+                                     ostream &stream) const throw(string)
+{
+    size_t width;
 
     switch (o_type) {
         case O_SCI:
