@@ -21,7 +21,21 @@ int main(int argc, char* argv[]) {
         MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-        std::cout << "hi " << rank << std::endl;
+        if (argc != 2){
+            throw std::runtime_error("Wrong parameters");
+        }
+
+        std::ifstream in(argv[1], std::ios::in);
+
+        Matrix<float> A(in, Matrix_ns::Normal);
+        A.print();
+
+        std::vector<float> b(A.n_rows());
+
+        for (size_t i = 0; i < b.size(); ++i){
+            in >> b[i];
+            std::cout << b[i] << std::endl;
+        }
 
 
 
