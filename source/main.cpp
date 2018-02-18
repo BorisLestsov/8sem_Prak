@@ -45,9 +45,9 @@ int main(int argc, char* argv[]) {
             std::cerr << e << std::endl;
         MPI_Abort(MPI_COMM_WORLD, -1);
     }
-    catch (const MPI::Exception& e) {
+    catch (const std::exception& e) {
         if (rank == 0)
-            std::cerr << e.Get_error_string() << std::endl;
+            std::cerr << e.what() << std::endl;
         MPI_Abort(MPI_COMM_WORLD, -1);
     }
 
