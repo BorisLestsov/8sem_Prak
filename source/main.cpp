@@ -51,20 +51,20 @@ int main(int argc, char* argv[]) {
 
 
         for (size_t ind = 0; ind < A.n_rows(); ++ind) {
-            std::cout << "----" << std::endl;
 
             Matrix<dtype> I(size, size, 0.0, Matrix_ns::ColMaj);
             Matrix<dtype> Outer(size, size, 0.0, Matrix_ns::ColMaj);
 
-            dtype *a_vec = A.get_col(ind, offset);
+            dtype *a_vec = A.get_col(ind);
 
-//            for (size_t i = 0; i < size; ++i) {
-//                std::cout << a_vec[i] << std::endl;
-//            }
-
-            dtype a_norm = norm(a_vec, size);
             std::copy(a_vec, a_vec + size, x_vec);
-            x_vec[0] -= a_norm;
+            dtype a_norm = norm(x_vec+ind, size-ind);
+
+            for (size_t j = 0; j < ind; ++j) {
+                x_vec[j] = 0;
+            }
+
+            x_vec[ind] -= a_norm;
             dtype x_norm = norm(x_vec, size);
 
             for (size_t i = 0; i < size; ++i) {
@@ -80,32 +80,28 @@ int main(int argc, char* argv[]) {
                     Outer(i, j) = 2 * x_vec[i] * x_vec[j];
 
             Matrix<dtype> U = I - Outer;
-            //U.print();
 
-            Matrix<dtype> A2 = A;
-            A2.fill(0.0, offset, offset);
+            A = U*A;
+            //A.print();
 
-
-            for (size_t i = offset; i < A.n_rows(); ++i)
-                for (size_t j = offset; j < A.n_cols(); ++j)
-                    for (size_t k = offset; k < A.n_rows(); ++k)
-                        A2(i, j) += U(i-offset, k-offset) * A(k, j);
-
-            A = A2;
-
-            A.print();
-
-            size -= 1;
-            offset += 1;
         }
 
+        std::cout << "----" << std::endl;
         A.print();
 
-        //std::vector<float> a0 = A.get_col(0);
+        x_vec[A.n_rows()-1] = - (A(A.n_rows()-1, A.n_cols()-1)/A(A.n_rows()-1, A.n_cols()-2));
+        for (int i = (int) A.n_rows()-2; i >= 0; --i){
+            dtype sum = A(i, A.n_cols()-1);
+            for (int j = i+1; j < A.n_cols(); ++j) {
+                sum += A(i, j)*x_vec[j];
+            }
+            x_vec[i] = - sum/A(i,i);
+        }
+        for (size_t ind = 0; ind < A.n_rows(); ++ind) {
+            std::cout << "x_" << ind << ": " << -x_vec[ind] << std::endl;
+        }
 
-        //for (size_t i = 0; i < A.n_rows(); ++i){
-        //}
-
+        delete x_vec;
 
     }
     catch (const std::string& e) {
