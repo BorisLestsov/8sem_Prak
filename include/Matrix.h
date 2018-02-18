@@ -47,7 +47,9 @@ public:
     inline ElOrder order() const ;
     inline size_t size() const;
 
-    float* get_col(size_t ind);
+    T* get_col(size_t ind, size_t offset = 0);
+
+    void fill(const T&, size_t offset_rows = 0, size_t offset_cols = 0);
 
     Matrix<T> operator+(const Matrix &matr) throw(string);
     Matrix<T> operator-(const Matrix &matr) throw(string);

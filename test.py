@@ -16,19 +16,29 @@ with open("data/mat.txt", 'r') as f:
 mat = np.array(a)
 print mat
 
-I = np.zeros(shape=(3,3))
-for i in range(3):
-	I[i,i] = 1
+for ind in range(3):
 
-a0 = mat[:, 0].copy()
+	I = np.zeros(shape=(3,3))
+	for i in range(3):
+		I[i,i] = 1
 
-norm_a0 = norm(a0)
-x = a0.copy()
+	a0 = mat[:, ind].copy()
 
-x[0] -= norm_a0
+	norm_a0 = norm(a0)
+	x = a0.copy()
 
-x /= norm(x)
+	x[ind] -= norm_a0
 
-U = I - 2*np.outer(x,x)
+	x /= norm(x)
 
-print U.dot(mat)
+	U = I - 2*np.outer(x,x)
+
+	for j in range(ind):
+		U[:, j] = 0
+		U[j, :] = 0
+		U[j, j] = 1
+	print U
+
+	mat = U.dot(mat)
+
+	print mat

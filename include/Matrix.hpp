@@ -98,12 +98,25 @@ Matrix<T>::~Matrix() {
 template<class T>
 Matrix<T>::Matrix(const Matrix<T> &matr):
         rows(matr.rows),
-        cols(matr.cols) ,
+        cols(matr.cols),
         ord(matr.ord)
 {
     arr = new T[matr.rows*matr.cols];
 
     memcpy(arr, matr.arr, sizeof(matr.arr[0])*matr.rows*matr.cols);
+}
+
+template<class T>
+void Matrix<T>::fill(const T& elem, size_t offset_rows, size_t offset_cols)
+{
+    size_t i, j;
+
+    for (i = offset_rows; i < rows; i++)
+        for (j = offset_cols; j < cols; j++)
+            if (ord == ColMaj)
+                arr[j*rows+i] = elem;
+            else
+                arr[i*cols+j] = elem;
 }
 
 /*
@@ -140,9 +153,9 @@ inline size_t Matrix<T>::size() const{
 }
 
 template<class T>
-float* Matrix<T>::get_col(size_t ind){
+T* Matrix<T>::get_col(size_t ind, size_t offset){
     if (ord != ColMaj) throw string("getcol in rowmaj mat");
-    return arr + ind*rows;
+    return arr + ind*rows + offset;
 }
 
 template<class T>
