@@ -27,8 +27,21 @@ int main(int argc, char* argv[]) {
 
         std::ifstream in(argv[1], std::ios::in);
 
-        Matrix<float> A(in, Matrix_ns::Normal);
+        Matrix<float> A(in, Matrix_ns::Normal, Matrix_ns::RowMaj);
         A.print();
+
+        Matrix<float> U(4, 4, 0.0f);
+        U(0,0) = 1;
+        U(1,1) = 1;
+        U(2,2) = 1;
+        U(3,3) = 1;
+
+        (A*U).print();
+
+        //std::vector<float> a0 = A.get_col(0);
+
+        //for (size_t i = 0; i < A.n_rows(); ++i){
+        //}
 
 
     }

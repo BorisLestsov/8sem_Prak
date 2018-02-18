@@ -16,6 +16,7 @@ namespace Matrix_ns {
 
 enum OutType {O_FXD, O_SCI};
 enum InType {Normal, Binary};
+enum ElOrder {RowMaj=0, ColMaj=1};
 
 using namespace std;
 
@@ -26,23 +27,27 @@ class Matrix {
     size_t rows;
     size_t cols;
 
+    ElOrder ord;
 
 public:
     Matrix();
-    Matrix(T* buf, size_t rows, size_t cols);
-    Matrix(size_t rows, size_t cols, bool is_rand = false);
-    Matrix(size_t rows, size_t cols, T elem);
+    Matrix(T* buf, size_t rows, size_t cols, ElOrder order = RowMaj);
+    Matrix(size_t rows, size_t cols, bool is_rand = false, ElOrder order = RowMaj);
+    Matrix(size_t rows, size_t cols, T elem, ElOrder order = RowMaj);
     Matrix(const Matrix<T> &matr);
     //Matrix(Matrix&& m);
 
-    Matrix(istream& in, InType in_t = Normal);
+    Matrix(istream& in, InType in_t = Normal, ElOrder order = RowMaj);
 
     ~Matrix();
 
 
     inline size_t n_rows() const ;
     inline size_t n_cols() const ;
+    inline ElOrder order() const ;
     inline size_t size() const;
+
+
 
     Matrix<T> operator+(const Matrix &matr) throw(string);
     Matrix<T> operator-(const Matrix &matr) throw(string);

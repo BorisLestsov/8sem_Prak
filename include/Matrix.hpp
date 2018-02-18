@@ -8,11 +8,14 @@ template <typename T>
 Matrix<T>::Matrix():
         arr(NULL),
         rows(0),
-        cols(0)
+        cols(0),
+        ord(RowMaj)
 {}
 
 template <typename T>
-Matrix<T>::Matrix(istream& in, InType in_t) {
+Matrix<T>::Matrix(istream& in, InType in_t, ElOrder order):
+    ord(order)
+{
     if (!in.good())
         throw string("Could not open input file");
 
@@ -23,7 +26,10 @@ Matrix<T>::Matrix(istream& in, InType in_t) {
 
         for (size_t i = 0; i < rows; ++i)
             for (size_t j = 0; j < cols; ++j)
-                in >> arr[i*cols + j];
+                if (ord == ColMaj)
+                    in >> arr[j*rows + i];
+                else
+                    in >> arr[i*cols + j];
     } else if (in_t == Binary) {
         in.read((char*) &rows, sizeof(rows));
         in.read((char*) &cols, sizeof(cols));
@@ -35,16 +41,21 @@ Matrix<T>::Matrix(istream& in, InType in_t) {
 }
 
 template <typename T>
-Matrix<T>::Matrix(T* buf, size_t rows, size_t cols):
+Matrix<T>::Matrix(T* buf, size_t rows, size_t cols, ElOrder order):
         rows(rows),
-        cols(cols)
+        cols(cols),
+        ord(order)
 {
     arr = new T[cols*rows];
     memcpy(arr, buf, sizeof(T) * rows*cols);
 }
 
 template<class T>
-Matrix<T>::Matrix(size_t rows, size_t cols, bool is_rand): rows(rows), cols(cols) {
+Matrix<T>::Matrix(size_t rows, size_t cols, bool is_rand, ElOrder order):
+        rows(rows),
+        cols(cols),
+        ord(order)
+{
     size_t i, j;
 
     arr = new T[rows*cols];
@@ -53,19 +64,29 @@ Matrix<T>::Matrix(size_t rows, size_t cols, bool is_rand): rows(rows), cols(cols
         srand(time(0));
         for (i = 0; i < rows; i++)
             for (j = 0; j < cols; ++j)
-                arr[i*cols + j] = rand() / (T)RAND_MAX;
+                if (ord == ColMaj)
+                    arr[j*rows + i] = rand() / (T)RAND_MAX;
+                else
+                    arr[i*cols + j] = rand() / (T)RAND_MAX;
     }
 }
 
 template<class T>
-Matrix<T>::Matrix(size_t rows, size_t cols, T elem): rows(rows), cols(cols) {
+Matrix<T>::Matrix(size_t rows, size_t cols, T elem, ElOrder order):
+        rows(rows),
+        cols(cols),
+        ord(order)
+{
     size_t i, j;
 
     arr = new T[cols*rows];
 
     for (i = 0; i < rows; i++)
         for (j = 0; j < cols; j++)
-            arr[i*cols+j] = elem;
+            if (ord == ColMaj)
+                arr[j*rows+i] = elem;
+            else
+                arr[i*cols+j] = elem;
 }
 
 template<class T>
@@ -75,7 +96,11 @@ Matrix<T>::~Matrix() {
 }
 
 template<class T>
-Matrix<T>::Matrix(const Matrix<T> &matr): rows(matr.rows), cols(matr.cols) {
+Matrix<T>::Matrix(const Matrix<T> &matr):
+        rows(matr.rows),
+        cols(matr.cols) ,
+        ord(matr.ord)
+{
     arr = new T[matr.rows*matr.cols];
 
     memcpy(arr, matr.arr, sizeof(matr.arr[0])*matr.rows*matr.cols);
@@ -100,6 +125,11 @@ inline size_t Matrix<T>::n_rows() const{
 }
 
 template<class T>
+inline ElOrder Matrix<T>::order() const{
+    return ord;
+}
+
+template<class T>
 inline size_t Matrix<T>::n_cols() const{
     return cols;
 }
@@ -111,74 +141,64 @@ inline size_t Matrix<T>::size() const{
 
 template<class T>
 Matrix<T> Matrix<T>::operator+(const Matrix &matr) throw(string) {
-    try {
-        if (rows != matr.rows || cols != matr.cols) throw string("Matrices of different sizes in \"+\"");
-    }
-    catch (const string *s) {
-        cerr << s << endl;
-        exit(-1);
-    }
+    if (rows != matr.rows || cols != matr.cols) throw string("Matrices of different sizes in \"+\"");
 
     Matrix<T> tmp = *this;
-    int i, j;
+    size_t i, j;
 
     for (i = 0; i < rows; i++)
         for (j = 0; j < cols; j++)
-            tmp.arr[i*cols+j] += matr.arr[i*cols+j];
+            if (ord == ColMaj)
+                tmp.arr[j*rows+i] += matr(i, j);
+            else
+                tmp.arr[i*cols+j] += matr(i, j);
     return tmp;
 }
 
 
 template<class T>
 Matrix<T> Matrix<T>::operator-(const Matrix &matr) throw(string) {
-    try {
-        if (rows != matr.rows || cols != matr.cols) throw string("Matrices of different sizes in \"-\"");
-    }
-    catch (const string *s) {
-        cerr << s << endl;
-        exit(-1);
-    }
+    if (rows != matr.rows || cols != matr.cols) throw string("Matrices of different sizes in \"-\"");
 
     Matrix<T> tmp = *this;
     int i, j;
 
     for (i = 0; i < rows; i++)
         for (j = 0; j < cols; j++)
-            tmp.arr[i*cols + j] -= matr.arr[i*cols + j];
+            if (ord == ColMaj)
+                tmp.arr[j*rows+i] -= matr(i, j);
+            else
+                tmp.arr[i*cols+j] -= matr(i, j);
     return tmp;
 }
 
 template<class T>
 Matrix<T> Matrix<T>::operator*(const Matrix &matr) throw(string) {
-    try {
-        if (cols != matr.rows) throw string("Matrices of wrong sizes in \"-\"");
-    }
-    catch (const string *s) {
-        cerr << s << endl;
-        exit(-1);
-    }
+    if (cols != matr.rows) throw string("Matrices of wrong sizes in \"*\"");
 
-    Matrix<T> tmp(rows, matr.cols, 0.0f);
+    Matrix<T> tmp(rows, matr.cols, 0.0f, ord);
     size_t i, j, k;
 
-    for (i = 0; i < rows; i++)
-        for (j = 0; j < cols; j++)
-            for (k = 0; k < cols; k++) {
-                tmp.arr[i * cols + j] += arr[i * cols + k] * matr.arr[k * cols + j];
-            }
+    if (ord == ColMaj) {
+        for (i = 0; i < rows; i++)
+            for (j = 0; j < matr.cols; j++)
+                for (k = 0; k < cols; k++) {
+                    tmp.arr[j*tmp.rows+i] += arr[k*rows+i] * matr(k, j);
+                }
+    } else {
+        for (i = 0; i < rows; i++)
+            for (j = 0; j < matr.cols; j++)
+                for (k = 0; k < cols; k++) {
+                    tmp.arr[i*tmp.cols+j] += arr[i*cols+k] * matr(k, j);
+                }
+    }
     return tmp;
 }
 
 template<class T>
 T &Matrix<T>::operator()(size_t i, size_t j) const throw(string) {
-    try {
-        if (i >= rows || j >= cols || i < 0 || j < 0) throw string("Out of bounds");
-    }
-    catch (const string& s) {
-        cerr << s << endl;
-        exit(-1);
-    }
-    return arr[i*cols + j];
+    if (i >= rows || j >= cols || i < 0 || j < 0) throw string("Out of bounds");
+    return (ord == ColMaj)?arr[j*rows + i]:arr[i*cols + j];
 }
 
 template<class Y>
@@ -187,7 +207,10 @@ const istream& operator>>(const istream &strm, Matrix<Y> &matr) {
 
     for (i = 0; i < matr.rows; i++)
         for (j = 0; j < matr.cols; j++)
-            cin >> matr.arr[i*matr.cols + j];
+            if (matr.ord == ColMaj)
+                cin >> matr.arr[j*matr.rows + i];
+            else
+                cin >> matr.arr[i*matr.cols + j];
     return strm;
 }
 
@@ -199,6 +222,7 @@ Matrix<T> &Matrix<T>::operator=(const Matrix &m) {
 
     rows = m.n_rows();
     cols = m.n_cols();
+    ord = m.ord();
     arr = new T[m.n_rows() * m.n_cols()];
 
     memcpy(arr, m.data(), m.n_rows()*m.n_cols()*sizeof(T));
@@ -252,7 +276,10 @@ void Matrix<T>::print(OutType o_type,
     }
     for (size_t i = 0; i < rows; ++i) {
         for (size_t j = 0; j < cols; ++j) {
-            stream << setw(width) << arr[i * cols + j];
+            if (ord == ColMaj)
+                stream << setw(width) << arr[j * rows + i];
+            else
+                stream << setw(width) << arr[i * cols + j];
         }
         stream << endl;
     }
@@ -372,13 +399,7 @@ inline size_t Matrix<std::complex<T> >::size() const{
 
 template<class T>
 Matrix<std::complex<T> > Matrix<std::complex<T> >::operator+(const Matrix &matr) throw(string) {
-    try {
-        if (rows != matr.rows || cols != matr.cols) throw string("Matrices of different sizes in \"+\"");
-    }
-    catch (const string &s) {
-        cerr << s << endl;
-        exit(-1);
-    }
+    if (rows != matr.rows || cols != matr.cols) throw string("Matrices of different sizes in \"+\"");
 
     Matrix<T> tmp = *this;
     int i, j;
@@ -392,13 +413,7 @@ Matrix<std::complex<T> > Matrix<std::complex<T> >::operator+(const Matrix &matr)
 
 template<class T>
 Matrix<std::complex<T> > Matrix<std::complex<T> >::operator-(const Matrix &matr) throw(string) {
-    try {
-        if (rows != matr.rows || cols != matr.cols) throw string("Matrices of different sizes in \"-\"");
-    }
-    catch (const string *s) {
-        cerr << s << endl;
-        exit(-1);
-    }
+    if (rows != matr.rows || cols != matr.cols) throw string("Matrices of different sizes in \"-\"");
 
     Matrix<T> tmp = *this;
     int i, j;
@@ -411,13 +426,7 @@ Matrix<std::complex<T> > Matrix<std::complex<T> >::operator-(const Matrix &matr)
 
 template<class T>
 Matrix<std::complex<T> > Matrix<std::complex<T> >::operator*(const Matrix &matr) throw(string) {
-    try {
-        if (cols != matr.rows) throw string("Matrices of wrong sizes in \"-\"");
-    }
-    catch (const string *s) {
-        cerr << s << endl;
-        exit(-1);
-    }
+    if (cols != matr.rows) throw string("Matrices of wrong sizes in \"-\"");
 
     Matrix<std::complex<T> > tmp(rows, matr.cols, 0.0);
     size_t i, j, k;
@@ -432,13 +441,7 @@ Matrix<std::complex<T> > Matrix<std::complex<T> >::operator*(const Matrix &matr)
 
 template<class T>
 std::complex<T> &Matrix<std::complex<T> >::operator()(size_t i, size_t j) const throw(string) {
-    try {
-        if (i >= rows || j >= cols || i < 0 || j < 0) throw string("Out of bounds");
-    }
-    catch (const string *s) {
-        cerr << s << endl;
-        exit(-1);
-    }
+    if (i >= rows || j >= cols || i < 0 || j < 0) throw string("Out of bounds");
     return arr[i*cols + j];
 }
 
