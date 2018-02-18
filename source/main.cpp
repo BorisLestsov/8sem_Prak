@@ -30,14 +30,6 @@ int main(int argc, char* argv[]) {
         Matrix<float> A(in, Matrix_ns::Normal);
         A.print();
 
-        std::vector<float> b(A.n_rows());
-
-        for (size_t i = 0; i < b.size(); ++i){
-            in >> b[i];
-            std::cout << b[i] << std::endl;
-        }
-
-
 
     }
     catch (const std::string& e) {
