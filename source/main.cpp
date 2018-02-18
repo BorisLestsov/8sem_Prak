@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
         if (argc != 2){
-            throw std::runtime_error("Wrong parameters");
+            throw std::string("Wrong parameters");
         }
 
         std::ifstream in(argv[1], std::ios::in);
