@@ -1,0 +1,9 @@
+# @ job_type = bluegene
+# @ output = out/$(jobid).out
+# @ error = out/$(jobid).err
+# @ initialdir = /home_edu/edu-cmc-sqi-old/edu-cmc-sqi16y3-007/Prak/8sem 
+# @ wall_clock_limit = 00:15:00
+# @ bg_size = 32
+# @ queue
+/bgsys/drivers/ppcfloor/bin/mpirun -np 32 -exe build/bin/Prak -args "data/mat.txt" -env OMP_NUM_THREADS=1 -mode VN
+
