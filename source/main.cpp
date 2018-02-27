@@ -163,15 +163,16 @@ int main(int argc, char* argv[]) {
 
         MPI_Gather(A.data(), glob_rows*cols_stride, mpi_datatype, Afin.data(), glob_rows*cols_stride, mpi_datatype, 0, MPI_COMM_WORLD);
 
-        if (rank==comm_size-1)
-            MPI_Send(A.data()+cols_stride*glob_rows,
-                     glob_rows*(glob_cols-cols_stride*comm_size),
-                     mpi_datatype, 0, 0, MPI_COMM_WORLD);
-        if (rank==0)
-            MPI_Recv(Afin.data()+(cols_stride*comm_size)*glob_rows,
-                     glob_rows*(glob_cols-cols_stride*comm_size),
-                     mpi_datatype, comm_size-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
+        if (comm_size != 1) {
+            if (rank == comm_size - 1)
+                MPI_Send(A.data() + cols_stride * glob_rows,
+                         glob_rows * (glob_cols - cols_stride * comm_size),
+                         mpi_datatype, 0, 0, MPI_COMM_WORLD);
+            if (rank == 0)
+                MPI_Recv(Afin.data() + (cols_stride * comm_size) * glob_rows,
+                         glob_rows * (glob_cols - cols_stride * comm_size),
+                         mpi_datatype, comm_size - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        }
 //        if (rank==0)
 //            Afin.print();
 
