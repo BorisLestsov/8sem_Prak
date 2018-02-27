@@ -1,15 +1,27 @@
 #include <iostream>
 #include <fstream>
-#include "Matrix.h"
-#include <algorithm>
-#include <vector>
-#include <string>
-#include "mpi.h"
+#include <sys/time.h>
 
+#include "Matrix.h"
+#include "mpi.h"
 
 using Matrix_ns::Matrix;
 
+#define DOUBLE 1
+#define FLOAT 2
+
+#define DTYPE DOUBLE
+
+#if DTYPE == DOUBLE
 #define dtype double
+MPI_Datatype mpi_datatype = MPI_DOUBLE;
+#else
+#define dtype float
+MPI_Datatype mpi_datatype = MPI_FLOAT;
+#endif
+
+#define EPS 1e-12
+
 
 template<class T>
 dtype scalar_prod(const T* a, const T* b, size_t size){
@@ -36,24 +48,37 @@ int main(int argc, char* argv[]) {
         MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-        if (argc != 2){
-            throw std::string("Wrong parameters");
+        struct timeval st, et;
+        gettimeofday(&st, NULL);
+
+        bool need_rand = false;
+
+        if (argc == 3){
+            need_rand = true;
+        } else if (argc != 2) {
+            throw std::string("Wrong args");
         }
 
-        std::ifstream in(argv[1], std::ios::in);
+        Matrix<dtype> A;
 
-        Matrix<dtype> A(in, Matrix_ns::Normal, Matrix_ns::ColMaj);
-        A.print();
+        std::ifstream in;
+        if (!need_rand) {
+            in.open(argv[1], std::ios::in);
+            A = Matrix<dtype>(in, Matrix_ns::Normal, Matrix_ns::ColMaj);
+        } else {
+            A = Matrix<dtype>(std::atoi(argv[1]), std::atoi(argv[2]), Matrix_ns::ColMaj, true);
+        }
 
         size_t size = A.n_rows();
-        size_t offset = 0;
         dtype* x_vec = new dtype[size];
 
+        Matrix<dtype> I(size, size, 0.0, Matrix_ns::ColMaj);
+        for (size_t i = 0; i < size; ++i) {
+            I(i, i) = 1.0;
+        }
+        Matrix<dtype> U;
 
         for (size_t ind = 0; ind < A.n_rows(); ++ind) {
-
-            Matrix<dtype> I(size, size, 0.0, Matrix_ns::ColMaj);
-            Matrix<dtype> Outer(size, size, 0.0, Matrix_ns::ColMaj);
 
             dtype *a_vec = A.get_col(ind);
 
@@ -71,23 +96,25 @@ int main(int argc, char* argv[]) {
                 x_vec[i] /= x_norm;
             }
 
-            for (size_t i = 0; i < size; ++i) {
-                I(i, i) = 1.0;
+
+            if (x_norm >= EPS) {
+                for (size_t i = 0; i < size; ++i) {
+                    x_vec[i] /= x_norm;
+                }
+
+                Matrix<dtype> Outer(size, size, 0.0, Matrix_ns::ColMaj);
+                for (size_t i = 0; i < size; ++i)
+                    for (size_t j = 0; j < size; ++j)
+                        Outer(i, j) = 2 * x_vec[i] * x_vec[j];
+
+                U = I - Outer;
+            } else {
+                U = I;
             }
 
-            for (size_t i = 0; i < size; ++i)
-                for (size_t j = 0; j < size; ++j)
-                    Outer(i, j) = 2 * x_vec[i] * x_vec[j];
-
-            Matrix<dtype> U = I - Outer;
-
             A = U*A;
-            //A.print();
-
         }
 
-        std::cout << "----" << std::endl;
-        A.print();
 
         x_vec[A.n_rows()-1] = - (A(A.n_rows()-1, A.n_cols()-1)/A(A.n_rows()-1, A.n_cols()-2));
         for (int i = (int) A.n_rows()-2; i >= 0; --i){
@@ -97,12 +124,16 @@ int main(int argc, char* argv[]) {
             }
             x_vec[i] = - sum/A(i,i);
         }
+
+        gettimeofday(&et, NULL);
+        int elapsed = ((et.tv_sec - st.tv_sec) * 1000000) + (et.tv_usec - st.tv_usec);
+
         for (size_t ind = 0; ind < A.n_rows(); ++ind) {
             std::cout << "x_" << ind << ": " << -x_vec[ind] << std::endl;
         }
-
+        if (rank == 0)
+            std::cout << "Time (microsec): " << elapsed << std::endl;
         delete x_vec;
-
     }
     catch (const std::string& e) {
         if (rank == 0)
