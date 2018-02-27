@@ -1,8 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include <algorithm>
-#include <vector>
-#include <string>
+#include <time.h>
 
 #include "Matrix.h"
 #include "mpi.h"
@@ -21,6 +19,9 @@ MPI_Datatype mpi_datatype = MPI_DOUBLE;
 #define dtype float
 MPI_Datatype mpi_datatype = MPI_FLOAT;
 #endif
+
+#define EPS 1e-12
+
 
 template<class T>
 dtype scalar_prod(const T* a, const T* b, size_t size){
@@ -47,11 +48,15 @@ int main(int argc, char* argv[]) {
         MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-        if (argc != 2){
+        clock_t begin = clock();
+
+        bool need_rand = false;
+
+        if (argc == 3){
+            need_rand = true;
+        } else if (argc != 2) {
             throw std::string("Wrong args");
         }
-
-        std::ifstream in(argv[1], std::ios::in);
 
         size_t glob_rows,
                 glob_cols,
@@ -60,9 +65,17 @@ int main(int argc, char* argv[]) {
                 my_cols_offset,
                 next_offset;
 
-        in >> glob_rows >> glob_cols;
-        cols_stride = glob_cols/comm_size;
+        std::ifstream in;
+        if (!need_rand) {
+            in.open(argv[1], std::ios::in);
+            in >> glob_rows >> glob_cols;
+        } else {
+            srand(time(0));
+            glob_rows = std::atoi(argv[1]);
+            glob_cols = std::atoi(argv[2]);
+        }
 
+        cols_stride = glob_cols/comm_size;
         my_cols = cols_stride;
         if (rank == comm_size-1)
             my_cols += glob_cols % comm_size;
@@ -70,7 +83,7 @@ int main(int argc, char* argv[]) {
         my_cols_offset = rank * cols_stride;
         next_offset = my_cols_offset+my_cols;
 
-//        if (rank == 1){
+//        if (rank == 3){
 //            std::cout << glob_rows << "  "
 //                    << glob_cols << "  "
 //                    << my_cols << "  "
@@ -84,7 +97,11 @@ int main(int argc, char* argv[]) {
         for (size_t i = 0; i < glob_rows; ++i){
             for (size_t j = 0; j < glob_cols; ++j){
                 dtype tmp;
-                in >> tmp;
+                if (!need_rand) {
+                    in >> tmp;
+                } else {
+                    tmp = rand() / (dtype) RAND_MAX;
+                }
                 if (j >= my_cols_offset && j < next_offset) {
                     A(i, j - my_cols_offset) = tmp;
                 }
@@ -95,17 +112,22 @@ int main(int argc, char* argv[]) {
         dtype* x_vec = new dtype[size];
 
         Matrix<dtype> U(glob_rows, glob_rows, 0.0, Matrix_ns::ColMaj);
+
+        Matrix<dtype> I(size, size, 0.0, Matrix_ns::ColMaj);
+        for (size_t i = 0; i < size; ++i) {
+            I(i, i) = 1.0;
+        }
+
         for (size_t ind = 0; ind < glob_rows; ++ind) {
-            int root = ind / cols_stride;
-            //ind >= my_cols_offset && ind < next_offset
+            int root = std::min(ind / cols_stride, (size_t) comm_size-1);
             if (rank == root) {
-                Matrix<dtype> I(size, size, 0.0, Matrix_ns::ColMaj);
                 Matrix<dtype> Outer(size, size, 0.0, Matrix_ns::ColMaj);
 
                 dtype *a_vec = A.get_col(ind - my_cols_offset);
 
                 std::copy(a_vec, a_vec + size, x_vec);
                 dtype a_norm = norm(x_vec + ind, size - ind);
+
 
                 for (size_t j = 0; j < ind; ++j) {
                     x_vec[j] = 0;
@@ -114,22 +136,23 @@ int main(int argc, char* argv[]) {
                 x_vec[ind] -= a_norm;
                 dtype x_norm = norm(x_vec, size);
 
-                for (size_t i = 0; i < size; ++i) {
-                    x_vec[i] /= x_norm;
+                if (x_norm >= EPS) {
+                    for (size_t i = 0; i < size; ++i) {
+                        x_vec[i] /= x_norm;
+                    }
+
+                    for (size_t i = 0; i < size; ++i)
+                        for (size_t j = 0; j < size; ++j)
+                            Outer(i, j) = 2 * x_vec[i] * x_vec[j];
+
+                    U = I - Outer;
+                } else {
+                    U = I;
                 }
-
-                for (size_t i = 0; i < size; ++i) {
-                    I(i, i) = 1.0;
-                }
-
-                for (size_t i = 0; i < size; ++i)
-                    for (size_t j = 0; j < size; ++j)
-                        Outer(i, j) = 2 * x_vec[i] * x_vec[j];
-
-                U = I - Outer;
             }
 
             MPI_Bcast(U.data(), U.n_rows()*U.n_cols(), mpi_datatype, root, MPI_COMM_WORLD);
+
             A = U * A;
         }
 
@@ -148,6 +171,9 @@ int main(int argc, char* argv[]) {
                      glob_rows*(glob_cols-cols_stride*comm_size),
                      mpi_datatype, comm_size-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
+//        if (rank==0)
+//            Afin.print();
+
 
         if (rank == 0) {
             x_vec[Afin.n_rows() - 1] = -(Afin(Afin.n_rows() - 1, Afin.n_cols() - 1) /
@@ -159,11 +185,16 @@ int main(int argc, char* argv[]) {
                 }
                 x_vec[i] = -sum / Afin(i, i);
             }
-            for (size_t ind = 0; ind < A.n_rows(); ++ind) {
-                std::cout << "x_" << ind << ": " << -x_vec[ind] << std::endl;
-            }
         }
 
+        clock_t end = clock();
+        double time_spent = (double)(end - begin) / (CLOCKS_PER_SEC/1000000);
+
+        for (size_t ind = 0; ind < Afin.n_rows(); ++ind) {
+            std::cout << "x_" << ind << ": " << -x_vec[ind] << std::endl;
+        }
+        if (rank == 0)
+            std::cout << "Time (microsec): " << time_spent << std::endl;
         delete x_vec;
 
     }
