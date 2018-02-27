@@ -92,11 +92,6 @@ int main(int argc, char* argv[]) {
             x_vec[ind] -= a_norm;
             dtype x_norm = norm(x_vec, size);
 
-            for (size_t i = 0; i < size; ++i) {
-                x_vec[i] /= x_norm;
-            }
-
-
             if (x_norm >= EPS) {
                 for (size_t i = 0; i < size; ++i) {
                     x_vec[i] /= x_norm;
@@ -115,6 +110,7 @@ int main(int argc, char* argv[]) {
             A = U*A;
         }
 
+        A.print();
 
         x_vec[A.n_rows()-1] = - (A(A.n_rows()-1, A.n_cols()-1)/A(A.n_rows()-1, A.n_cols()-2));
         for (int i = (int) A.n_rows()-2; i >= 0; --i){
