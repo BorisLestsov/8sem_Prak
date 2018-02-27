@@ -1,6 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include <time.h>
+#include <sys/time.h>
 
 #include "Matrix.h"
 #include "mpi.h"
@@ -48,7 +48,8 @@ int main(int argc, char* argv[]) {
         MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-        clock_t begin = clock();
+        struct timeval st, et;
+        gettimeofday(&st, NULL);
 
         bool need_rand = false;
 
@@ -187,14 +188,14 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        clock_t end = clock();
-        double time_spent = (double)(end - begin) / (CLOCKS_PER_SEC/1000000);
+        gettimeofday(&et, NULL);
+        int elapsed = ((et.tv_sec - st.tv_sec) * 1000000) + (et.tv_usec - st.tv_usec);
 
         for (size_t ind = 0; ind < Afin.n_rows(); ++ind) {
             std::cout << "x_" << ind << ": " << -x_vec[ind] << std::endl;
         }
         if (rank == 0)
-            std::cout << "Time (microsec): " << time_spent << std::endl;
+            std::cout << "Time (microsec): " << elapsed << std::endl;
         delete x_vec;
 
     }
