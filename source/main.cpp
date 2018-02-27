@@ -9,12 +9,18 @@
 
 using Matrix_ns::Matrix;
 
+#define DOUBLE 1
+#define FLOAT 2
+
+#define DTYPE DOUBLE
+
+#if DTYPE == DOUBLE
 #define dtype double
-//#if dtype == double
 MPI_Datatype mpi_datatype = MPI_DOUBLE;
-//#else
-//MPI_Datatype mpi_datatype = MPI_FLOAT;
-//#endif
+#else
+#define dtype float
+MPI_Datatype mpi_datatype = MPI_FLOAT;
+#endif
 
 template<class T>
 dtype scalar_prod(const T* a, const T* b, size_t size){
