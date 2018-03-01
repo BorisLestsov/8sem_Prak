@@ -10,7 +10,7 @@ using Matrix_ns::Matrix;
 #define DOUBLE 1
 #define FLOAT 2
 
-#define DTYPE DOUBLE
+#define DTYPE FLOAT
 
 #if DTYPE == DOUBLE
 #define dtype double
@@ -112,17 +112,9 @@ int main(int argc, char* argv[]) {
         size_t size = glob_rows;
         dtype* x_vec = new dtype[size];
 
-        Matrix<dtype> U(glob_rows, glob_rows, 0.0, Matrix_ns::ColMaj);
-
-        Matrix<dtype> I(size, size, 0.0, Matrix_ns::ColMaj);
-        for (size_t i = 0; i < size; ++i) {
-            I(i, i) = 1.0;
-        }
-
         for (size_t ind = 0; ind < glob_rows; ++ind) {
             int root = std::min(ind / cols_stride, (size_t) comm_size-1);
             if (rank == root) {
-                Matrix<dtype> Outer(size, size, 0.0, Matrix_ns::ColMaj);
 
                 dtype *a_vec = A.get_col(ind - my_cols_offset);
 
@@ -141,20 +133,16 @@ int main(int argc, char* argv[]) {
                     for (size_t i = 0; i < size; ++i) {
                         x_vec[i] /= x_norm;
                     }
-
-                    for (size_t i = 0; i < size; ++i)
-                        for (size_t j = 0; j < size; ++j)
-                            Outer(i, j) = 2 * x_vec[i] * x_vec[j];
-
-                    U = I - Outer;
-                } else {
-                    U = I;
                 }
             }
-
-            MPI_Bcast(U.data(), U.n_rows()*U.n_cols(), mpi_datatype, root, MPI_COMM_WORLD);
-
-            A = U * A;
+            MPI_Bcast(x_vec, size, mpi_datatype, root, MPI_COMM_WORLD);
+            for (int col_i = 0; col_i < my_cols; ++col_i) {
+                dtype *y_vec = A.get_col(col_i);
+                dtype scal = 2*scalar_prod(x_vec, y_vec, size);
+                for (int j = 0; j < size; ++j) {
+                    y_vec[j] -= scal*x_vec[j];
+                }
+            }
         }
 
         Matrix<dtype> Afin;
