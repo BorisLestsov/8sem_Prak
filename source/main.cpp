@@ -72,12 +72,6 @@ int main(int argc, char* argv[]) {
         size_t size = A.n_rows();
         dtype* x_vec = new dtype[size];
 
-        Matrix<dtype> I(size, size, 0.0, Matrix_ns::ColMaj);
-        for (size_t i = 0; i < size; ++i) {
-            I(i, i) = 1.0;
-        }
-        Matrix<dtype> U;
-
         for (size_t ind = 0; ind < A.n_rows(); ++ind) {
 
             dtype *a_vec = A.get_col(ind);
@@ -96,21 +90,15 @@ int main(int argc, char* argv[]) {
                 for (size_t i = 0; i < size; ++i) {
                     x_vec[i] /= x_norm;
                 }
-
-                Matrix<dtype> Outer(size, size, 0.0, Matrix_ns::ColMaj);
-                for (size_t i = 0; i < size; ++i)
-                    for (size_t j = 0; j < size; ++j)
-                        Outer(i, j) = 2 * x_vec[i] * x_vec[j];
-
-                U = I - Outer;
-            } else {
-                U = I;
+                for (size_t col_i = 0; col_i < A.n_cols(); ++col_i) {
+                    dtype *y_vec = A.get_col(col_i);
+                    dtype scal = 2*scalar_prod(x_vec, y_vec, size);
+                    for (size_t j = 0; j < size; ++j) {
+                        y_vec[j] -= scal*x_vec[j];
+                    }
+                }
             }
-
-            A = U*A;
         }
-
-        A.print();
 
         x_vec[A.n_rows()-1] = - (A(A.n_rows()-1, A.n_cols()-1)/A(A.n_rows()-1, A.n_cols()-2));
         for (int i = (int) A.n_rows()-2; i >= 0; --i){
