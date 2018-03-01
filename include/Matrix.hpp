@@ -199,25 +199,44 @@ Matrix<T> Matrix<T>::operator*(const Matrix &matr) throw(string) {
     size_t i, j, k;
 
     if (ord == ColMaj) {
-        for (i = 0; i < rows; i++)
-            for (j = 0; j < matr.cols; j++)
-                for (k = 0; k < cols; k++) {
-                    tmp.arr[j*tmp.rows+i] += arr[k*rows+i] * matr(k, j);
-                }
+        if (matr.ord == ColMaj) {
+            for (i = 0; i < rows; i++)
+                for (j = 0; j < matr.cols; j++)
+                    for (k = 0; k < cols; k++) {
+                        tmp.arr[j * tmp.rows + i] += arr[k * rows + i] * matr.arr[j * matr.rows + k];
+                        //tmp.arr[j*tmp.rows+i] += arr[k*rows+i] * matr(k, j);
+                    }
+        } else {
+            for (i = 0; i < rows; i++)
+                for (j = 0; j < matr.cols; j++)
+                    for (k = 0; k < cols; k++) {
+                        tmp.arr[j * tmp.rows + i] += arr[k * rows + i] * matr.arr[k * matr.cols + j];
+                        //tmp.arr[j*tmp.rows+i] += arr[k*rows+i] * matr(k, j);
+                    }
+        }
     } else {
-        for (i = 0; i < rows; i++)
-            for (j = 0; j < matr.cols; j++)
-                for (k = 0; k < cols; k++) {
-                    tmp.arr[i*tmp.cols+j] += arr[i*cols+k] * matr(k, j);
-                }
+        if (matr.ord == ColMaj) {
+            for (i = 0; i < rows; i++)
+                for (j = 0; j < matr.cols; j++)
+                    for (k = 0; k < cols; k++) {
+                        tmp.arr[i * tmp.cols + j] += arr[i * cols + k] * matr.arr[j * matr.rows + k];
+                    }
+        } else {
+            for (i = 0; i < rows; i++)
+                for (j = 0; j < matr.cols; j++)
+                    for (k = 0; k < cols; k++) {
+                        tmp.arr[i * tmp.cols + j] += arr[i * cols + k] * matr.arr[k * matr.cols + j];
+                    }
+        }
     }
     return tmp;
 }
 
 template<class T>
 T &Matrix<T>::operator()(size_t i, size_t j) const throw(string) {
-    if (i >= rows || j >= cols || i < 0 || j < 0) throw string("Out of bounds");
+    //if (i >= rows || j >= cols || i < 0 || j < 0) throw string("Out of bounds");
     return (ord == ColMaj)?arr[j*rows + i]:arr[i*cols + j];
+    //return arr[j*rows + i];
 }
 
 template<class Y>
