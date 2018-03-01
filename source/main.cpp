@@ -191,11 +191,11 @@ int main(int argc, char* argv[]) {
         gettimeofday(&et, NULL);
         int elapsed = ((et.tv_sec - st.tv_sec) * 1000000) + (et.tv_usec - st.tv_usec);
 
-        for (size_t ind = 0; ind < Afin.n_rows(); ++ind) {
-            std::cout << "x_" << ind << ": " << -x_vec[ind] << std::endl;
-        }
+        //for (size_t ind = 0; ind < Afin.n_rows(); ++ind) {
+        //    std::cout << "x_" << ind << ": " << -x_vec[ind] << std::endl;
+        //}
         if (rank == 0)
-            std::cout << "Time (microsec): " << elapsed << std::endl;
+            std::cout << "Size: " << comm_size << "; Time (microsec): " << elapsed << std::endl;
         delete x_vec;
 
     }
