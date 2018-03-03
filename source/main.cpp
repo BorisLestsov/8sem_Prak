@@ -20,7 +20,7 @@ MPI_Datatype mpi_datatype = MPI_DOUBLE;
 MPI_Datatype mpi_datatype = MPI_FLOAT;
 #endif
 
-#define EPS 1e-12
+#define EPS 1e-8
 
 
 template<class T>
@@ -109,6 +109,7 @@ int main(int argc, char* argv[]) {
             }
         }
 
+        
         size_t size = glob_rows;
         dtype* x_vec = new dtype[size];
 
@@ -176,7 +177,7 @@ int main(int argc, char* argv[]) {
                 x_vec[i] = -sum / Afin(i, i);
             }
         }
-
+        
         gettimeofday(&et, NULL);
         int elapsed = ((et.tv_sec - st.tv_sec) * 1000000) + (et.tv_usec - st.tv_usec);
 
