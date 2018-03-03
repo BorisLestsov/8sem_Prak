@@ -1,4 +1,4 @@
-CXX			= g++
+CXX			= mpicxx
 CFLAGS 		= -Wall -O3
 TARGET 		= Prak
 
