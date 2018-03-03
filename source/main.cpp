@@ -23,6 +23,11 @@ MPI_Datatype mpi_datatype = MPI_FLOAT;
 #define EPS 1e-12
 
 
+dtype f(size_t i, size_t j){
+    return rand() / (dtype) RAND_MAX;
+}
+
+
 template<class T>
 dtype scalar_prod(const T* a, const T* b, size_t size){
     float s = 0;
@@ -90,7 +95,7 @@ int main(int argc, char* argv[]) {
                 if (!need_rand) {
                     in >> tmp;
                 } else {
-                    tmp = rand() / (dtype) RAND_MAX;
+                    tmp = f(i, j); 
                 }
                 if (j >= my_cols_offset && j < next_offset) {
                     A(i, j - my_cols_offset) = tmp;
@@ -161,6 +166,7 @@ int main(int argc, char* argv[]) {
             }
 
             MPI_Bcast(tmp_vec, ind+1, mpi_datatype, root, MPI_COMM_WORLD);
+
             for (int loc_row = 0; loc_row < ind; ++loc_row) {
                 x_vec[loc_row] -= tmp_vec[loc_row];
             }
