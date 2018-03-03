@@ -50,8 +50,6 @@ int main(int argc, char* argv[]) {
 
         struct timeval st_1, et_1, st_2, et_2;
 
-        gettimeofday(&st_1, NULL);
-
         bool need_rand = false;
 
         if (argc == 3){
@@ -69,6 +67,8 @@ int main(int argc, char* argv[]) {
         } else {
             A = Matrix<dtype>(std::atoi(argv[1]), std::atoi(argv[2]), Matrix_ns::ColMaj, true);
         }
+
+        gettimeofday(&st_1, NULL);
 
         size_t size = A.n_rows();
         dtype* x_vec = new dtype[size];
