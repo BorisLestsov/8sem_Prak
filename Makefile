@@ -1,5 +1,5 @@
 CXX			= mpicxx
-CFLAGS 		= -Wall -O3
+CFLAGS 		= -Wall -O0
 TARGET 		= Prak
 
 

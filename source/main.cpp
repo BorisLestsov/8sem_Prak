@@ -10,7 +10,7 @@ using Matrix_ns::Matrix;
 #define DOUBLE 1
 #define FLOAT 2
 
-#define DTYPE FLOAT
+#define DTYPE DOUBLE
 
 #if DTYPE == DOUBLE
 #define dtype double
@@ -48,8 +48,7 @@ int main(int argc, char* argv[]) {
         MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-        struct timeval st, et;
-        gettimeofday(&st, NULL);
+        struct timeval st_1, et_1, st_2, et_2;
 
         bool need_rand = false;
 
@@ -84,16 +83,6 @@ int main(int argc, char* argv[]) {
         my_cols_offset = rank * cols_stride;
         next_offset = my_cols_offset+my_cols;
 
-//        if (rank == 3){
-//            std::cout << glob_rows << "  "
-//                    << glob_cols << "  "
-//                    << my_cols << "  "
-//                    << cols_stride << "  "
-//                    << my_cols_offset << "  "
-//                    << next_offset << std::endl;
-//        }
-
-
         Matrix<dtype> A(glob_rows, my_cols, 0.0, Matrix_ns::ColMaj);
         for (size_t i = 0; i < glob_rows; ++i){
             for (size_t j = 0; j < glob_cols; ++j){
@@ -108,6 +97,8 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
+
+        gettimeofday(&st_1, NULL);
 
         size_t size = glob_rows;
         dtype* x_vec = new dtype[size];
@@ -136,56 +127,58 @@ int main(int argc, char* argv[]) {
                 }
             }
             MPI_Bcast(x_vec, size, mpi_datatype, root, MPI_COMM_WORLD);
-            for (int col_i = 0; col_i < my_cols; ++col_i) {
+            for (size_t col_i = 0; col_i < my_cols; ++col_i) {
                 dtype *y_vec = A.get_col(col_i);
                 dtype scal = 2*scalar_prod(x_vec, y_vec, size);
-                for (int j = 0; j < size; ++j) {
+                for (size_t j = 0; j < size; ++j) {
                     y_vec[j] -= scal*x_vec[j];
                 }
             }
         }
 
-        Matrix<dtype> Afin;
-        if (rank == 0)
-            Afin = Matrix<dtype>(glob_rows, glob_cols, 0.0, Matrix_ns::ColMaj);
+        gettimeofday(&et_1, NULL);
+        gettimeofday(&st_2, NULL);
 
-        MPI_Gather(A.data(), glob_rows*cols_stride, mpi_datatype, Afin.data(), glob_rows*cols_stride, mpi_datatype, 0, MPI_COMM_WORLD);
+        dtype* tmp_vec = new dtype[size+1];
 
-        if (comm_size != 1) {
-            if (rank == comm_size - 1)
-                MPI_Send(A.data() + cols_stride * glob_rows,
-                         glob_rows * (glob_cols - cols_stride * comm_size),
-                         mpi_datatype, 0, 0, MPI_COMM_WORLD);
-            if (rank == 0)
-                MPI_Recv(Afin.data() + (cols_stride * comm_size) * glob_rows,
-                         glob_rows * (glob_cols - cols_stride * comm_size),
-                         mpi_datatype, comm_size - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        if (rank == comm_size-1){
+            dtype* ptr = A.get_col(A.n_cols() - 1);
+            std::copy(ptr, ptr + size, x_vec);
         }
-//        if (rank==0)
-//            Afin.print();
+        MPI_Bcast(x_vec, size, mpi_datatype, comm_size-1, MPI_COMM_WORLD);
 
 
-        if (rank == 0) {
-            x_vec[Afin.n_rows() - 1] = -(Afin(Afin.n_rows() - 1, Afin.n_cols() - 1) /
-                                        Afin(Afin.n_rows() - 1, Afin.n_cols() - 2));
-            for (int i = (int) Afin.n_rows() - 2; i >= 0; --i) {
-                dtype sum = Afin(i, Afin.n_cols() - 1);
-                for (int j = i + 1; j < Afin.n_cols(); ++j) {
-                    sum += Afin(i, j) * x_vec[j];
+        for (int ind = size-1; ind >= 0; --ind) {
+            int root = std::min(ind / cols_stride, (size_t) comm_size-1);
+
+            if (root == rank) {
+                dtype val = x_vec[ind] / A(ind, ind - my_cols_offset);
+
+                for (size_t loc_row = 0; loc_row < ind; ++loc_row) {
+                    tmp_vec[loc_row] = val*A(loc_row, ind-my_cols_offset);
                 }
-                x_vec[i] = -sum / Afin(i, i);
+                tmp_vec[ind] = val;
             }
+
+            MPI_Bcast(tmp_vec, ind+1, mpi_datatype, root, MPI_COMM_WORLD);
+            for (int loc_row = 0; loc_row < ind; ++loc_row) {
+                x_vec[loc_row] -= tmp_vec[loc_row];
+            }
+            x_vec[ind] = tmp_vec[ind];
         }
 
-        gettimeofday(&et, NULL);
-        int elapsed = ((et.tv_sec - st.tv_sec) * 1000000) + (et.tv_usec - st.tv_usec);
+        gettimeofday(&et_2, NULL);
+        int elapsed_1 = ((et_1.tv_sec - st_1.tv_sec) * 1000000) + (et_1.tv_usec - st_1.tv_usec);
+        int elapsed_2 = ((et_2.tv_sec - st_2.tv_sec) * 1000000) + (et_2.tv_usec - st_2.tv_usec);
 
-        for (size_t ind = 0; ind < Afin.n_rows(); ++ind) {
-            std::cout << "x_" << ind << ": " << -x_vec[ind] << std::endl;
-        }
         if (rank == 0)
-            std::cout << "Time (microsec): " << elapsed << std::endl;
+            for (size_t ind = 0; ind < size; ++ind) {
+                std::cout << "x_" << ind << ": " << x_vec[ind] << std::endl;
+            }
+        if (rank == 0)
+            std::cout << "Time (microsec): " << elapsed_1 << "  :  " << elapsed_2 << std::endl;
         delete x_vec;
+        delete tmp_vec;
 
     }
     catch (const std::string& e) {
@@ -200,5 +193,3 @@ int main(int argc, char* argv[]) {
     MPI_Finalize();
     return 0;
 }
-
-
