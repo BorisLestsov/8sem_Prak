@@ -3,7 +3,6 @@
 #include <sys/time.h>
 
 #include "Matrix.h"
-#include "mpi.h"
 
 using Matrix_ns::Matrix;
 
@@ -14,10 +13,8 @@ using Matrix_ns::Matrix;
 
 #if DTYPE == DOUBLE
 #define dtype double
-MPI_Datatype mpi_datatype = MPI_DOUBLE;
 #else
 #define dtype float
-MPI_Datatype mpi_datatype = MPI_FLOAT;
 #endif
 
 #define EPS 1e-12
@@ -38,15 +35,10 @@ dtype norm(const T* a, size_t size) {
 }
 
 
-int rank = 0, comm_size;
 
 int main(int argc, char* argv[]) {
-    MPI_Init(&argc, &argv);
-    MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_ARE_FATAL);
 
     try {
-        MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
         struct timeval st_1, et_1, st_2, et_2;
 
@@ -121,23 +113,17 @@ int main(int argc, char* argv[]) {
         //    std::cout << "x_" << ind << ": " << -x_vec[ind] << std::endl;
         //}
         
-        if (rank == 0)
-            std::cout << "Size: " << comm_size << " Time (microsec): " << elapsed_1 << "  :  " << elapsed_2 << std::endl;
+        std::cout << " Time (microsec): " << elapsed_1 << "  :  " << elapsed_2 << std::endl;
 
         delete x_vec;        
     }
     catch (const std::string& e) {
-        if (rank == 0)
             std::cerr << e << std::endl;
-        MPI_Abort(MPI_COMM_WORLD, -1);
     }
     catch (const std::exception& e) {
-        if (rank == 0)
             std::cerr << e.what() << std::endl;
-        MPI_Abort(MPI_COMM_WORLD, -1);
     }
 
-    MPI_Finalize();
     return 0;
 }
 
