@@ -10,7 +10,7 @@ using Matrix_ns::Matrix;
 #define DOUBLE 1
 #define FLOAT 2
 
-#define DTYPE DOUBLE
+#define DTYPE FLOAT 
 
 #if DTYPE == DOUBLE
 #define dtype double
@@ -20,7 +20,7 @@ MPI_Datatype mpi_datatype = MPI_DOUBLE;
 MPI_Datatype mpi_datatype = MPI_FLOAT;
 #endif
 
-#define EPS 1e-8
+#define EPS 1e-12
 
 
 template<class T>
