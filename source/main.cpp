@@ -48,8 +48,9 @@ int main(int argc, char* argv[]) {
         MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-        struct timeval st, et;
-        gettimeofday(&st, NULL);
+        struct timeval st_1, et_1, st_2, et_2;
+
+        gettimeofday(&st_1, NULL);
 
         bool need_rand = false;
 
@@ -100,6 +101,9 @@ int main(int argc, char* argv[]) {
             }
         }
 
+        gettimeofday(&et_1, NULL);
+        gettimeofday(&st_2, NULL);
+
         x_vec[A.n_rows()-1] = - (A(A.n_rows()-1, A.n_cols()-1)/A(A.n_rows()-1, A.n_cols()-2));
         for (int i = (int) A.n_rows()-2; i >= 0; --i){
             dtype sum = A(i, A.n_cols()-1);
@@ -109,15 +113,18 @@ int main(int argc, char* argv[]) {
             x_vec[i] = - sum/A(i,i);
         }
 
-        gettimeofday(&et, NULL);
-        int elapsed = ((et.tv_sec - st.tv_sec) * 1000000) + (et.tv_usec - st.tv_usec);
+        gettimeofday(&et_2, NULL);
+        int elapsed_1 = ((et_1.tv_sec - st_1.tv_sec) * 1000000) + (et_1.tv_usec - st_1.tv_usec);
+        int elapsed_2 = ((et_2.tv_sec - st_2.tv_sec) * 1000000) + (et_2.tv_usec - st_2.tv_usec);
 
-        for (size_t ind = 0; ind < A.n_rows(); ++ind) {
-            std::cout << "x_" << ind << ": " << -x_vec[ind] << std::endl;
-        }
+        //for (size_t ind = 0; ind < A.n_rows(); ++ind) {
+        //    std::cout << "x_" << ind << ": " << -x_vec[ind] << std::endl;
+        //}
+        
         if (rank == 0)
-            std::cout << "Time (microsec): " << elapsed << std::endl;
-        delete x_vec;
+            std::cout << "Size: " << comm_size << " Time (microsec): " << elapsed_1 << "  :  " << elapsed_2 << std::endl;
+
+        delete x_vec;        
     }
     catch (const std::string& e) {
         if (rank == 0)
