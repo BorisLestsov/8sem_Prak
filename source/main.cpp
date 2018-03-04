@@ -200,7 +200,6 @@ int main(int argc, char* argv[]) {
        
         if (rank == comm_size-1)
             for (size_t i = 0; i < size; ++i){
-//                std::cout << x_vec[i] << "  " << res_vec[i] << "  " << b_vec[i] << std::endl;
                 res_vec[i] -= b_vec[i];
             }
 
@@ -211,10 +210,10 @@ int main(int argc, char* argv[]) {
         int elapsed_1 = ((et_1.tv_sec - st_1.tv_sec) * 1000000) + (et_1.tv_usec - st_1.tv_usec);
         int elapsed_2 = ((et_2.tv_sec - st_2.tv_sec) * 1000000) + (et_2.tv_usec - st_2.tv_usec);
 
-//        if (rank == 0)
-//            for (size_t ind = 0; ind < size; ++ind) {
-//                std::cout << "x_" << ind << ": " << x_vec[ind] << std::endl;
-//           }
+        if (rank == comm_size-1)
+            for (size_t ind = 0; ind < size; ++ind) {
+                std::cout << "x_" << ind << ": " << x_vec[ind] << std::endl;
+           }
         if (rank == comm_size-1)
             std::cout <<  "Mat_size " << size << " Comm_size " << comm_size << " Forward_Time_(microsec) " << elapsed_1 << "  Backward_Time_(microsec) " << elapsed_2 << " diff " << diff << std::endl;
         delete x_vec;
