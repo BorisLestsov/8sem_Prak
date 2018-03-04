@@ -23,6 +23,13 @@ MPI_Datatype mpi_datatype = MPI_FLOAT;
 #define EPS 1e-12
 
 
+dtype f(size_t i, size_t j){
+    //return rand() / (dtype) RAND_MAX;
+    //return ((1+i+j)%20)/((1+i+j)%15);
+    return (i + j) / (i+j+1.0);
+}
+
+
 template<class T>
 dtype scalar_prod(const T* a, const T* b, size_t size){
     float s = 0;
@@ -90,7 +97,7 @@ int main(int argc, char* argv[]) {
                 if (!need_rand) {
                     in >> tmp;
                 } else {
-                    tmp = rand() / (dtype) RAND_MAX;
+                    tmp = f(i, j); 
                 }
                 if (j >= my_cols_offset && j < next_offset) {
                     A(i, j - my_cols_offset) = tmp;
@@ -98,9 +105,7 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        dtype* b_vec, *res_vec = new dtype[glob_rows];
-        if (rank == comm_size - 1)
-            b_vec = A.get_col(A.n_cols()-1);
+        Matrix<dtype> Acopy = A;
 
         gettimeofday(&st_1, NULL);
 
@@ -165,6 +170,7 @@ int main(int argc, char* argv[]) {
             }
 
             MPI_Bcast(tmp_vec, ind+1, mpi_datatype, root, MPI_COMM_WORLD);
+
             for (int loc_row = 0; loc_row < ind; ++loc_row) {
                 x_vec[loc_row] -= tmp_vec[loc_row];
             }
@@ -174,22 +180,33 @@ int main(int argc, char* argv[]) {
 
         gettimeofday(&et_2, NULL);
 
+        dtype* b_vec, *res_vec = new dtype[glob_rows];
+        if (rank == comm_size - 1)
+            b_vec = Acopy.get_col(Acopy.n_cols()-1);
+
+ 
         if (rank == comm_size-1)
-            for (size_t i = 0; i < size; ++i){
-                tmp_vec[i] = 0.0;
-                for (size_t j = 0; j < my_cols; ++j){
-                    tmp_vec[i] += A(i, j) * x_vec[j];
-                }
+            my_cols -= 1;
+
+        for (int i = 0; i < size; ++i){
+            res_vec[i] = 0.0;
+            tmp_vec[i] = 0.0;
+            for (int j = 0; j < my_cols; ++j){
+                tmp_vec[i] += Acopy(i, j) * x_vec[my_cols_offset+j];
             }
+        }
 
         MPI_Reduce(tmp_vec, res_vec, size, mpi_datatype, MPI_SUM, comm_size-1, MPI_COMM_WORLD);
        
         if (rank == comm_size-1)
             for (size_t i = 0; i < size; ++i){
+//                std::cout << x_vec[i] << "  " << res_vec[i] << "  " << b_vec[i] << std::endl;
                 res_vec[i] -= b_vec[i];
             }
 
-        dtype diff = norm(res_vec, size);
+        dtype diff;
+        if (rank == comm_size - 1)
+            diff = norm(res_vec, size);
         
         int elapsed_1 = ((et_1.tv_sec - st_1.tv_sec) * 1000000) + (et_1.tv_usec - st_1.tv_usec);
         int elapsed_2 = ((et_2.tv_sec - st_2.tv_sec) * 1000000) + (et_2.tv_usec - st_2.tv_usec);
