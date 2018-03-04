@@ -98,6 +98,10 @@ int main(int argc, char* argv[]) {
             }
         }
 
+        dtype* b_vec, *res_vec = new dtype[glob_rows];
+        if (rank == comm_size - 1)
+            b_vec = A.get_col(A.n_cols()-1);
+
         gettimeofday(&st_1, NULL);
 
         size_t size = glob_rows;
@@ -169,6 +173,24 @@ int main(int argc, char* argv[]) {
         
 
         gettimeofday(&et_2, NULL);
+
+        if (rank == comm_size-1)
+            for (size_t i = 0; i < size; ++i){
+                tmp_vec[i] = 0.0;
+                for (size_t j = 0; j < my_cols; ++j){
+                    tmp_vec[i] += A(i, j) * x_vec[j];
+                }
+            }
+
+        MPI_Reduce(tmp_vec, res_vec, size, mpi_datatype, MPI_SUM, comm_size-1, MPI_COMM_WORLD);
+       
+        if (rank == comm_size-1)
+            for (size_t i = 0; i < size; ++i){
+                res_vec[i] -= b_vec[i];
+            }
+
+        dtype diff = norm(res_vec, size);
+        
         int elapsed_1 = ((et_1.tv_sec - st_1.tv_sec) * 1000000) + (et_1.tv_usec - st_1.tv_usec);
         int elapsed_2 = ((et_2.tv_sec - st_2.tv_sec) * 1000000) + (et_2.tv_usec - st_2.tv_usec);
 
@@ -176,8 +198,8 @@ int main(int argc, char* argv[]) {
 //            for (size_t ind = 0; ind < size; ++ind) {
 //                std::cout << "x_" << ind << ": " << x_vec[ind] << std::endl;
 //           }
-        if (rank == 0)
-            std::cout << "Size: " << comm_size << " Time (microsec): " << elapsed_1 << "  :  " << elapsed_2 << std::endl;
+        if (rank == comm_size-1)
+            std::cout <<  "Mat_size " << size << " Comm_size " << comm_size << " Forward_Time_(microsec) " << elapsed_1 << "  Backward_Time_(microsec) " << elapsed_2 << " diff " << diff << std::endl;
         delete x_vec;
         delete tmp_vec;
 
