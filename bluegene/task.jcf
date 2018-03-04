@@ -2,8 +2,16 @@
 # @ output = out/$(jobid).out
 # @ error = out/$(jobid).err
 # @ initialdir = /home_edu/edu-cmc-sqi-old/edu-cmc-sqi16y3-007/Prak/8sem 
-# @ wall_clock_limit = 00:15:00
-# @ bg_size = 32
+# @ wall_clock_limit = 00:05:00
+# @ bg_size = 512
 # @ queue
-/bgsys/drivers/ppcfloor/bin/mpirun -np 32 -exe build/bin/Prak -args "data/mat.txt" -env OMP_NUM_THREADS=1 -mode VN
-
+/bgsys/drivers/ppcfloor/bin/mpirun -np 512 -exe build/bin/Prak -args "4096 4097" -env OMP_NUM_THREADS=1 -mode VN
+/bgsys/drivers/ppcfloor/bin/mpirun -np 256 -exe build/bin/Prak -args "4096 4097" -env OMP_NUM_THREADS=1 -mode VN
+/bgsys/drivers/ppcfloor/bin/mpirun -np 128 -exe build/bin/Prak -args "4096 4097" -env OMP_NUM_THREADS=1 -mode VN
+/bgsys/drivers/ppcfloor/bin/mpirun -np 64 -exe build/bin/Prak -args "4096 4097" -env OMP_NUM_THREADS=1 -mode VN
+/bgsys/drivers/ppcfloor/bin/mpirun -np 32 -exe build/bin/Prak -args "4096 4097" -env OMP_NUM_THREADS=1 -mode VN
+/bgsys/drivers/ppcfloor/bin/mpirun -np 16 -exe build/bin/Prak -args "4096 4097" -env OMP_NUM_THREADS=1 -mode VN
+/bgsys/drivers/ppcfloor/bin/mpirun -np 8 -exe build/bin/Prak -args "4096 4097" -env OMP_NUM_THREADS=1 -mode VN
+/bgsys/drivers/ppcfloor/bin/mpirun -np 4 -exe build/bin/Prak -args "4096 4097" -env OMP_NUM_THREADS=1 -mode VN
+/bgsys/drivers/ppcfloor/bin/mpirun -np 2 -exe build/bin/Prak -args "4096 4097" -env OMP_NUM_THREADS=1 -mode VN
+/bgsys/drivers/ppcfloor/bin/mpirun -np 1 -exe build/bin/Prak -args "4096 4097" -env OMP_NUM_THREADS=1 -mode VN

@@ -10,7 +10,7 @@ using Matrix_ns::Matrix;
 #define DOUBLE 1
 #define FLOAT 2
 
-#define DTYPE DOUBLE
+#define DTYPE FLOAT 
 
 #if DTYPE == DOUBLE
 #define dtype double
@@ -24,7 +24,9 @@ MPI_Datatype mpi_datatype = MPI_FLOAT;
 
 
 dtype f(size_t i, size_t j){
-    return rand() / (dtype) RAND_MAX;
+    //return rand() / (dtype) RAND_MAX;
+    //return ((1+i+j)%20)/((1+i+j)%15);
+    return (i + j) / (i+j+1.0);
 }
 
 
@@ -103,6 +105,8 @@ int main(int argc, char* argv[]) {
             }
         }
 
+        Matrix<dtype> Acopy = A;
+
         gettimeofday(&st_1, NULL);
 
         size_t size = glob_rows;
@@ -172,17 +176,47 @@ int main(int argc, char* argv[]) {
             }
             x_vec[ind] = tmp_vec[ind];
         }
+        
 
         gettimeofday(&et_2, NULL);
+
+        dtype* b_vec, *res_vec = new dtype[glob_rows];
+        if (rank == comm_size - 1)
+            b_vec = Acopy.get_col(Acopy.n_cols()-1);
+
+ 
+        if (rank == comm_size-1)
+            my_cols -= 1;
+
+        for (int i = 0; i < size; ++i){
+            res_vec[i] = 0.0;
+            tmp_vec[i] = 0.0;
+            for (int j = 0; j < my_cols; ++j){
+                tmp_vec[i] += Acopy(i, j) * x_vec[my_cols_offset+j];
+            }
+        }
+
+        MPI_Reduce(tmp_vec, res_vec, size, mpi_datatype, MPI_SUM, comm_size-1, MPI_COMM_WORLD);
+       
+        if (rank == comm_size-1)
+            for (size_t i = 0; i < size; ++i){
+//                std::cout << x_vec[i] << "  " << res_vec[i] << "  " << b_vec[i] << std::endl;
+                res_vec[i] -= b_vec[i];
+            }
+
+        dtype diff;
+        if (rank == comm_size - 1)
+            diff = norm(res_vec, size);
+        
         int elapsed_1 = ((et_1.tv_sec - st_1.tv_sec) * 1000000) + (et_1.tv_usec - st_1.tv_usec);
         int elapsed_2 = ((et_2.tv_sec - st_2.tv_sec) * 1000000) + (et_2.tv_usec - st_2.tv_usec);
 
-        if (rank == 0)
-            for (size_t ind = 0; ind < size; ++ind) {
-                std::cout << "x_" << ind << ": " << x_vec[ind] << std::endl;
-            }
-        if (rank == 0)
-            std::cout << "Time (microsec): " << elapsed_1 << "  :  " << elapsed_2 << std::endl;
+//        if (rank == 0)
+//            for (size_t ind = 0; ind < size; ++ind) {
+//                std::cout << "x_" << ind << ": " << x_vec[ind] << std::endl;
+//           }
+        if (rank == comm_size-1)
+            std::cout <<  "Mat_size " << size << " Comm_size " << comm_size << " Forward_Time_(microsec) " << elapsed_1 << "  Backward_Time_(microsec) " << elapsed_2 << " diff " << diff << std::endl;
         delete x_vec;
         delete tmp_vec;
 
