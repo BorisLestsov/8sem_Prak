@@ -77,6 +77,8 @@ int main(int argc, char* argv[]) {
             srand(time(0));
             glob_rows = std::atoi(argv[1]);
             glob_cols = std::atoi(argv[2]);
+            if (glob_cols != glob_rows+1)
+                throw "wrong args";
         }
 
         my_cols = glob_cols / comm_size;
@@ -102,7 +104,6 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
-
 
         Matrix<dtype> Acopy = A;
 
@@ -159,8 +160,10 @@ int main(int argc, char* argv[]) {
         MPI_Bcast(b_vec, size, mpi_datatype, (glob_cols - 1) % comm_size, MPI_COMM_WORLD);
 
         my_cols_offset = A.n_cols()-1;
-        if ((glob_cols-1) % comm_size == rank)
+        if ((glob_cols-1) % comm_size == rank) {
             my_cols_offset -= 1;
+        }
+
         for (int ind = size-1; ind >= 0; --ind) {
             dtype val;
             int root = ind % comm_size;
@@ -175,12 +178,11 @@ int main(int argc, char* argv[]) {
             x_vec[ind] = val;
 
             for (int loc_row = rank; loc_row < ind; loc_row += comm_size) {
-                b_vec[loc_row] -= val*tmp_vec[loc_row];
+                b_vec[loc_row] -= val * tmp_vec[loc_row];
             }
 
             tmp_vec = ptr;
         }
-        
 
         gettimeofday(&et_2, NULL);
 
