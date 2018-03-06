@@ -1,6 +1,6 @@
-CXX			= mpicxx
-#CXX			= mpixlcxx_r
-CFLAGS 		= -Wall -O3
+#CXX			= mpicxx
+CXX			= mpixlcxx_r
+CFLAGS 		=  -O5
 TARGET 		= Prak
 
 
