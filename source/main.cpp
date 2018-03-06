@@ -216,8 +216,8 @@ int main(int argc, char* argv[]) {
            }
         if (rank == comm_size-1)
             std::cout <<  "Mat_size " << size << " Comm_size " << comm_size << " Forward_Time_(microsec) " << elapsed_1 << "  Backward_Time_(microsec) " << elapsed_2 << " diff " << diff << std::endl;
-        delete x_vec;
-        delete tmp_vec;
+        delete[] x_vec;
+        delete[] tmp_vec;
 
     }
     catch (const std::string& e) {
