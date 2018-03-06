@@ -1,6 +1,6 @@
 CXX			= mpicxx
 #CXX			= mpixlcxx_r
-CFLAGS 		=  -O0
+CFLAGS 		=  -O5
 TARGET 		= Prak
 
 
