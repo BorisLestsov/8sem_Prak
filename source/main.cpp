@@ -78,7 +78,7 @@ int main(int argc, char* argv[]) {
             glob_rows = std::atoi(argv[1]);
             glob_cols = std::atoi(argv[2]);
             if (glob_cols != glob_rows+1)
-                throw "wrong args";
+                throw std::string("wrong args");
         }
 
         my_cols = glob_cols / comm_size;
@@ -137,7 +137,7 @@ int main(int argc, char* argv[]) {
                 my_cols_offset += comm_size - 1;
             }
             MPI_Bcast(x_vec, size, mpi_datatype, root, MPI_COMM_WORLD);
-            for (size_t col_i = 0; col_i < my_cols; ++col_i) {
+            for (size_t col_i = ind/comm_size; col_i < my_cols; ++col_i) {
                 dtype *y_vec = A.get_col(col_i);
                 dtype scal = 2*scalar_prod(x_vec, y_vec, size);
                 for (size_t j = 0; j < size; ++j) {
