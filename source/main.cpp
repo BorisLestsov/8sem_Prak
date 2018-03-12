@@ -25,8 +25,10 @@ MPI_Datatype mpi_datatype = MPI_FLOAT;
 
 
 dtype f(size_t i, size_t j){
-    return rand() / (dtype) RAND_MAX;
+    //return rand() / (dtype) RAND_MAX;
     //return (i + j) / (i+j+1.0);
+    return 1.0;///(i+j+1);
+    //return i+j;
 }
 
 
@@ -87,9 +89,17 @@ int main(int argc, char* argv[]) {
                 my_cols += 1;
         }
 
+        dtype* tmp1 = new dtype[glob_rows];
+        dtype* sum_bvec = new dtype[glob_rows];
+
         int my_cols_offset;
         Matrix<dtype> A(glob_rows, my_cols, 0.0, Matrix_ns::ColMaj);
         for (size_t i = 0; i < glob_rows; ++i){
+
+            tmp1[i] = 0;
+            sum_bvec[i] = 0;
+
+
             my_cols_offset = rank;
             for (size_t j = 0; j < glob_cols; ++j){
                 dtype tmp;
@@ -101,10 +111,21 @@ int main(int argc, char* argv[]) {
                 if (j % comm_size == rank) {
                     A(i, j - my_cols_offset) = tmp;
                     my_cols_offset += comm_size-1;
+
+                    if (j != glob_cols-1)
+                        tmp1[i] += tmp;
                 }
             }
         }
 
+        MPI_Reduce(tmp1, sum_bvec, glob_rows, mpi_datatype, MPI_SUM, (glob_cols-1) % comm_size, MPI_COMM_WORLD);
+        if ((glob_cols-1) % comm_size == rank)
+            std::copy(sum_bvec, sum_bvec + glob_rows, &A(0, my_cols-1));
+       
+
+        // sleep(rand()/(float)RAND_MAX*3);
+        // A.print();
+        
         Matrix<dtype> Acopy = A;
 
         gettimeofday(&st_1, NULL);
