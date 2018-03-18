@@ -25,9 +25,10 @@ MPI_Datatype mpi_datatype = MPI_FLOAT;
 
 
 dtype f(size_t i, size_t j){
+    return std::max(i, j);
     //return rand() / (dtype) RAND_MAX;
     //return (i + j) / (i+j+1.0);
-    return 1.0;///(i+j+1);
+   // return 1.0;///(i+j+1);
     //return i+j;
 }
 
@@ -57,7 +58,7 @@ int main(int argc, char* argv[]) {
         MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-        struct timeval st_1, et_1, st_2, et_2;
+        double st_1, et_1, st_2, et_2;
 
         bool need_rand = false;
 
@@ -128,7 +129,8 @@ int main(int argc, char* argv[]) {
         
         Matrix<dtype> Acopy = A;
 
-        gettimeofday(&st_1, NULL);
+        MPI_Barrier(MPI_COMM_WORLD);
+        st_1 = MPI_Wtime();
 
         size_t size = glob_rows;
         dtype* x_vec = new dtype[size];
@@ -167,8 +169,11 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        gettimeofday(&et_1, NULL);
-        gettimeofday(&st_2, NULL);
+        MPI_Barrier(MPI_COMM_WORLD);
+        et_1 = MPI_Wtime();
+
+        MPI_Barrier(MPI_COMM_WORLD);
+        st_2 = MPI_Wtime();
 
         dtype* tmp_vec = new dtype[size+1];
         dtype* b_vec = new dtype[size];
@@ -205,7 +210,9 @@ int main(int argc, char* argv[]) {
             tmp_vec = ptr;
         }
 
-        gettimeofday(&et_2, NULL);
+        MPI_Barrier(MPI_COMM_WORLD);
+        et_2 = MPI_Wtime();
+
 
         delete[] b_vec;
         dtype* res_vec = new dtype[glob_rows];
@@ -235,8 +242,8 @@ int main(int argc, char* argv[]) {
         if ((glob_cols-1) % comm_size == rank)
             diff = norm(res_vec, size);
         
-        int elapsed_1 = ((et_1.tv_sec - st_1.tv_sec) * 1000000) + (et_1.tv_usec - st_1.tv_usec);
-        int elapsed_2 = ((et_2.tv_sec - st_2.tv_sec) * 1000000) + (et_2.tv_usec - st_2.tv_usec);
+        long int elapsed_1 = ((et_1 - st_1) * 1000000);
+        long int elapsed_2 = ((et_2 - st_2) * 1000000);
 
         if ((glob_cols-1) % comm_size == rank)
             for (size_t ind = 0; ind < size; ++ind) {
