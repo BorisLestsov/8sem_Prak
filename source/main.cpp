@@ -90,15 +90,15 @@ int main(int argc, char* argv[]) {
                 my_cols += 1;
         }
 
-        dtype* tmp1 = new dtype[glob_rows];
-        dtype* sum_bvec = new dtype[glob_rows];
+//        dtype* tmp1 = new dtype[glob_rows];
+//        dtype* sum_bvec = new dtype[glob_rows];
 
         int my_cols_offset;
         Matrix<dtype> A(glob_rows, my_cols, 0.0, Matrix_ns::ColMaj);
         for (size_t i = 0; i < glob_rows; ++i){
-
-            tmp1[i] = 0;
-            sum_bvec[i] = 0;
+//
+//            tmp1[i] = 0;
+//            sum_bvec[i] = 0;
 
 
             my_cols_offset = rank;
@@ -113,20 +113,19 @@ int main(int argc, char* argv[]) {
                     A(i, j - my_cols_offset) = tmp;
                     my_cols_offset += comm_size-1;
 
-                    if (j != glob_cols-1)
-                        tmp1[i] += tmp;
+//                    if (j != glob_cols-1)
+//                        tmp1[i] += tmp;
                 }
             }
         }
 
-        MPI_Reduce(tmp1, sum_bvec, glob_rows, mpi_datatype, MPI_SUM, (glob_cols-1) % comm_size, MPI_COMM_WORLD);
-        if ((glob_cols-1) % comm_size == rank)
-            std::copy(sum_bvec, sum_bvec + glob_rows, &A(0, my_cols-1));
-       
+//        MPI_Reduce(tmp1, sum_bvec, glob_rows, mpi_datatype, MPI_SUM, (glob_cols-1) % comm_size, MPI_COMM_WORLD);
+//        if ((glob_cols-1) % comm_size == rank)
+//            std::copy(sum_bvec, sum_bvec + glob_rows, &A(0, my_cols-1));
 
-        // sleep(rand()/(float)RAND_MAX*3);
-        // A.print();
-        
+//         sleep(rand()/(float)RAND_MAX*5);
+//         A.print();
+
         Matrix<dtype> Acopy = A;
 
         MPI_Barrier(MPI_COMM_WORLD);
@@ -177,48 +176,70 @@ int main(int argc, char* argv[]) {
 
         dtype* tmp_vec = new dtype[size+1];
         dtype* b_vec = new dtype[size];
-        dtype* ptr = tmp_vec;
+
+        for (int i = 0; i < size; ++i) {
+            x_vec[i] = 0;
+            tmp_vec[i] = 0;
+        }
 
         if (rank == (glob_cols - 1) % comm_size){
             dtype* ptr = A.get_col(A.n_cols() - 1);
             std::copy(ptr, ptr + size, b_vec);
         }
         MPI_Bcast(b_vec, size, mpi_datatype, (glob_cols - 1) % comm_size, MPI_COMM_WORLD);
+//
+//         sleep(rand()/(float)RAND_MAX*10);
+//         A.print();
 
-        my_cols_offset = A.n_cols()-1;
         if ((glob_cols-1) % comm_size == rank) {
-            my_cols_offset -= 1;
+            my_cols -= 1;
         }
 
-        for (int ind = size-1; ind >= 0; --ind) {
-            dtype val;
+        int offset = my_cols;
+        for (int ind = size-1; ind >= 0; --ind){
             int root = ind % comm_size;
+
+            dtype val = 0, val_rec = 0;
+            for (int j = offset; j < my_cols; j += 1){
+
+                val += A(ind, j)*x_vec[j*comm_size+rank];
+//                std::cout << rank << "  "
+//                          << ind << "  "
+//                          << root << " | "
+//                          << j << " / "
+//                        << my_cols << " | "
+//                        << x_vec[j*comm_size+rank]<< " | "
+//                        << val << std::endl;
+            }
+            MPI_Reduce(&val, &val_rec, 1, mpi_datatype, MPI_SUM, root, MPI_COMM_WORLD);
+
             if (rank == root) {
-                val = b_vec[ind] / A(ind, my_cols_offset);
-                tmp_vec = A.get_col(my_cols_offset);
-                my_cols_offset -= 1;
+                offset -= 1;
+                x_vec[ind] = (b_vec[ind] - val_rec) / A(ind, ind/comm_size);
+//                std::cout << "  " << rank << "  "
+//                        << ind << "  "
+//                        << b_vec[ind] << "  "
+//                        << A(ind, ind/comm_size) << "  "
+//                        << val_rec << "  "
+//                          << x_vec[ind] << std::endl;
+            } else {
+                x_vec[ind] = 0;
             }
-            MPI_Bcast(&val, 1, mpi_datatype, root, MPI_COMM_WORLD);
-            MPI_Bcast(tmp_vec, ind, mpi_datatype, root, MPI_COMM_WORLD);
+        }
 
-            x_vec[ind] = val;
-
-            for (int loc_row = rank; loc_row < ind; loc_row += comm_size) {
-                b_vec[loc_row] -= val * tmp_vec[loc_row];
-            }
-
-            tmp_vec = ptr;
+        MPI_Allreduce(x_vec, tmp_vec, size, mpi_datatype, MPI_SUM, MPI_COMM_WORLD);
+        for (int i = 0; i < size; ++i) {
+            x_vec[i] = tmp_vec[i];
         }
 
         MPI_Barrier(MPI_COMM_WORLD);
         et_2 = MPI_Wtime();
 
-
         delete[] b_vec;
+
         dtype* res_vec = new dtype[glob_rows];
         if (rank == (glob_cols-1) % comm_size) {
             b_vec = Acopy.get_col(Acopy.n_cols() - 1);
-            my_cols -= 1;
         }
 
         for (int i = 0; i < size; ++i){
@@ -235,6 +256,7 @@ int main(int argc, char* argv[]) {
        
         if ((glob_cols-1) % comm_size == rank)
             for (size_t i = 0; i < size; ++i){
+                //std::cout << res_vec[i] << " | " << b_vec[i] << std::endl;
                 res_vec[i] -= b_vec[i];
             }
 
