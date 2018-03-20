@@ -1,0 +1,2 @@
+Mat_size 100 Comm_size 4 Forward_Time_(microsec) 1265  Backward_Time_(microsec) 1286 diff 0.00547513
+Mat_size 50 Comm_size 4 Forward_Time_(microsec) 276  Backward_Time_(microsec) 223 diff 0.000789414
