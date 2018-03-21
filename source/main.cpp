@@ -11,9 +11,9 @@ using Matrix_ns::Matrix;
 #define DOUBLE 1
 #define FLOAT 2
 
-#define DTYPE FLOAT
+#define DTYPE DOUBLE
 
-#if DTYPE == FLOAT
+#if DTYPE == DOUBLE
 #define dtype double
 MPI_Datatype mpi_datatype = MPI_DOUBLE;
 #define EPS 10*DBL_MIN
@@ -25,8 +25,8 @@ MPI_Datatype mpi_datatype = MPI_FLOAT;
 
 
 dtype f(size_t i, size_t j){
-    return std::max(i, j);
-    //return rand() / (dtype) RAND_MAX;
+    //return std::max(i, j);
+    return rand() / (dtype) RAND_MAX;
     //return (i + j) / (i+j+1.0);
    // return 1.0;///(i+j+1);
     //return i+j;
