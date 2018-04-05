@@ -25,8 +25,8 @@ MPI_Datatype mpi_datatype = MPI_FLOAT;
 
 
 dtype f(size_t i, size_t j){
-    return std::max(i, j);
-    //return rand() / (dtype) RAND_MAX;
+    //return std::max(i, j);
+    return rand() / (dtype) RAND_MAX;
     //return (i + j) / (i+j+1.0);
    // return 1.0;///(i+j+1);
     //return i+j;
@@ -269,10 +269,11 @@ int main(int argc, char* argv[]) {
 
         if ((glob_cols-1) % comm_size == rank)
             for (size_t ind = 0; ind < size; ++ind) {
-                std::cout << "x_" << ind << ": " << x_vec[ind] << std::endl;
+                //std::cout << "x_" << ind << ": " << x_vec[ind] << std::endl;
            }
-        if ((glob_cols-1) % comm_size == rank)
+        if ((glob_cols-1) % comm_size == rank){
             std::cout <<  "Mat_size " << size << " Comm_size " << comm_size << " Forward_Time_(microsec) " << elapsed_1 << "  Backward_Time_(microsec) " << elapsed_2 << " diff " << diff << std::endl;
+        }
         delete[] x_vec;
         delete[] tmp_vec;
 

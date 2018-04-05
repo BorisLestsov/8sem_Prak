@@ -23,13 +23,13 @@ using namespace std;
 
 template<class T>
 class Matrix {
+public:
     T *arr;
     size_t rows;
     size_t cols;
 
     ElOrder ord;
 
-public:
     Matrix();
     Matrix(T* buf, size_t rows, size_t cols, ElOrder order = RowMaj);
     Matrix(size_t rows, size_t cols, ElOrder order = RowMaj, bool is_rand = false);
@@ -55,7 +55,7 @@ public:
     Matrix<T> operator-(const Matrix &matr) throw(string);
     Matrix<T> operator*(const Matrix &matr) throw(string);
 
-    inline T &operator()(size_t i, size_t j) const throw(string);
+    inline T &operator()(size_t i, size_t j);
 
     Matrix<T>& operator=(const Matrix &m);
     //Matrix<T>& operator=(Matrix&& m);

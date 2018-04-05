@@ -233,10 +233,10 @@ Matrix<T> Matrix<T>::operator*(const Matrix &matr) throw(string) {
 }
 
 template<class T>
-T &Matrix<T>::operator()(size_t i, size_t j) const throw(string) {
-    if (i >= rows || j >= cols || i < 0 || j < 0) throw string("Out of bounds");
-    return (ord == ColMaj) ? arr[j*rows + i] : arr[i*cols + j];
-    //return arr[j*rows + i];
+T &Matrix<T>::operator()(size_t i, size_t j) {
+    //if (i >= rows || j >= cols || i < 0 || j < 0) throw string("Out of bounds");
+    //return (ord == ColMaj) ? arr[j*rows + i] : arr[i*cols + j];
+    return arr[j*rows + i];
 }
 
 template<class Y>
