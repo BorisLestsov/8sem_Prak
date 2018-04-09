@@ -1,6 +1,7 @@
 from sys import argv
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import seaborn as sns
 sns.set(color_codes=True)
 
@@ -55,8 +56,14 @@ def main():
     ax[1].set_xticks(x_bars, names)
     ax[1].set_xticklabels(names)
     ax[1].set_xlabel("Number of Processors")
-    ax[1].set_yscale("log", nonposy='clip')
-    #ax[1].set_ylim(0,500)
+    ax[1].set_yscale("log", nonposy='clip', basey=2)
+    #ax[1].tick_params(axis='y', which='minor')
+    locmin = ticker.LogLocator(base=2.0,subs=(0.5,), numticks=12)
+    ax[1].yaxis.set_minor_locator(locmin)
+    ax[1].yaxis.set_minor_formatter(ticker.FormatStrFormatter("%.1f"))
+    ax[1].yaxis.set_major_formatter(ticker.NullFormatter())
+    #ax[1].yaxis.set_minor_formatter(ticker.NullFormatter())
+    ax[1].set_ylim(0,500)
     ax[1].set_ylabel("Speedup/Efficiency coefficient")
     ax[1].set_title(header)
     ax[1].legend()

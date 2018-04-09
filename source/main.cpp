@@ -11,7 +11,7 @@ using Matrix_ns::Matrix;
 #define DOUBLE 1
 #define FLOAT 2
 
-#define DTYPE DOUBLE
+#define DTYPE FLOAT
 
 #if DTYPE == DOUBLE
 #define dtype double
@@ -123,8 +123,6 @@ int main(int argc, char* argv[]) {
 //        if ((glob_cols-1) % comm_size == rank)
 //            std::copy(sum_bvec, sum_bvec + glob_rows, &A(0, my_cols-1));
 
-//         sleep(rand()/(float)RAND_MAX*5);
-//         A.print();
 
         Matrix<dtype> Acopy = A;
 
@@ -171,11 +169,11 @@ int main(int argc, char* argv[]) {
         MPI_Barrier(MPI_COMM_WORLD);
         et_1 = MPI_Wtime();
 
-        MPI_Barrier(MPI_COMM_WORLD);
-        st_2 = MPI_Wtime();
-
         dtype* tmp_vec = new dtype[size+1];
         dtype* b_vec = new dtype[size];
+
+        MPI_Barrier(MPI_COMM_WORLD);
+        st_2 = MPI_Wtime();
 
         for (int i = 0; i < size; ++i) {
             x_vec[i] = 0;
@@ -187,9 +185,6 @@ int main(int argc, char* argv[]) {
             std::copy(ptr, ptr + size, b_vec);
         }
         MPI_Bcast(b_vec, size, mpi_datatype, (glob_cols - 1) % comm_size, MPI_COMM_WORLD);
-//
-//         sleep(rand()/(float)RAND_MAX*10);
-//         A.print();
 
         if ((glob_cols-1) % comm_size == rank) {
             my_cols -= 1;
@@ -201,39 +196,25 @@ int main(int argc, char* argv[]) {
 
             dtype val = 0, val_rec = 0;
             for (int j = offset; j < my_cols; j += 1){
-
                 val += A(ind, j)*x_vec[j*comm_size+rank];
-//                std::cout << rank << "  "
-//                          << ind << "  "
-//                          << root << " | "
-//                          << j << " / "
-//                        << my_cols << " | "
-//                        << x_vec[j*comm_size+rank]<< " | "
-//                        << val << std::endl;
             }
             MPI_Reduce(&val, &val_rec, 1, mpi_datatype, MPI_SUM, root, MPI_COMM_WORLD);
 
             if (rank == root) {
                 offset -= 1;
                 x_vec[ind] = (b_vec[ind] - val_rec) / A(ind, ind/comm_size);
-//                std::cout << "  " << rank << "  "
-//                        << ind << "  "
-//                        << b_vec[ind] << "  "
-//                        << A(ind, ind/comm_size) << "  "
-//                        << val_rec << "  "
-//                          << x_vec[ind] << std::endl;
             } else {
                 x_vec[ind] = 0;
             }
         }
 
+        MPI_Barrier(MPI_COMM_WORLD);
+        et_2 = MPI_Wtime();
+
         MPI_Allreduce(x_vec, tmp_vec, size, mpi_datatype, MPI_SUM, MPI_COMM_WORLD);
         for (int i = 0; i < size; ++i) {
             x_vec[i] = tmp_vec[i];
         }
-
-        MPI_Barrier(MPI_COMM_WORLD);
-        et_2 = MPI_Wtime();
 
         delete[] b_vec;
 
